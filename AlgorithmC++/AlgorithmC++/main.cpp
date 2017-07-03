@@ -178,24 +178,321 @@ long long Fibonacci1(unsigned n)
 
 #pragma mark -- 5.实现一个函数，输入一个整数，输出二进制表示中1的个数。
 
-int 
+int NumberOfOne(int n) {
+    int count = 0;
+    while (n) {
+        if (n & 1)
+            count ++;
+        n = n >> 1; // 右移运算，相当于 n = n / 2
+    }
+    return count;
+}
+
+int NumberOfOneU(int n)
+{
+    int count = 0;
+    unsigned int flag = 1;
+    while (flag) {
+        if (n & flag)
+            count ++;
+        flag = flag << 1; // 左移运算
+    }
+    return count;
+}
+
+int NumberOfOneT(int n)
+{
+    int count = 0;
+    while (n) {
+        ++ count;
+        n = (n - 1) & n;
+    }
+    return count;
+}
+
+#pragma mark -- 6.求整数的次方
+
+double PowerWithUnsignedExponent1(double base, unsigned int exponent)
+{
+    if (exponent == 0) return 1;
+    if (exponent == 1) return base;
+    
+    double result = PowerWithUnsignedExponent1(base, exponent >> 1);
+    result *= result;
+    if ((exponent & 0x1) == 1) // 用位与运算符代替了求余运算符(%)来判断一个数是奇数还是偶数。
+        result *= base;
+    return result;
+}
+
+bool g_InvalidInput = false;
+
+bool equal1(double num1, double num2)
+{
+    if (num1 - num2 > - 0.0000001 && num1 - num2 < 0.0000001)
+        return true;
+    else
+        return false;
+}
+
+double PowerWithUnsignedExponent2(double base, unsigned int exponent)
+{
+    double result = 1;
+    for (int i = 0; i <= exponent; ++ i)
+        result *= base;
+    return result;
+}
+
+double Power1(double base, int exponent)
+{
+    g_InvalidInput = false;
+    if (equal1(base, 0.0) && exponent < 0) {
+        g_InvalidInput = true;
+        return 0.0;
+    }
+    
+    unsigned int absExponent = (unsigned int)exponent;
+    if (exponent < 0) absExponent = (unsigned int)(-exponent);
+    
+    double result = PowerWithUnsignedExponent2(base, absExponent);
+    if (exponent < 0) result = 1.0 / result;
+    return result;
+}
+
+
+#pragma mark -- 7.打印1到最大的n位数
+// a.未考虑n为大数。
+void Print1ToMaxOfDigits_1A(int n)
+{
+    int number = 1;
+    int i = 0;
+    while (i ++ < n)
+        number *= 10;
+    for (i = 1; i < number; ++ i) {
+        printf("%d\t", i);
+    }
+}
+
+// b.使用字符串表示大数,最直观的方法就是字符串里每个字符都是‘0’到‘9’之间的某一个字符。
+void PrintNumber_1B(char* number)
+{
+    bool isBeginning0 = true;
+    int nLength = (int)strlen(number);
+    for (int i = 0; i < nLength; ++ i) {
+        if (isBeginning0 && number[i] != '0') isBeginning0 = false;
+        if (!isBeginning0) {
+            printf("%c", number[i]);
+        }
+        printf("\t");
+    }
+}
+
+// Increment_1B实现在表示数字的字符串number上增加1（模拟整数的加法），使用PrintNumber_1B打印出来。
+bool Increment_1B(char* number) // 实现了用O(1)时间判断是不是已经达到了最大的n位数。
+{
+    bool isOverflow = false;
+    int nTakeOver = 0;
+    int nLength = (int)strlen(number);
+    for (int i = nLength - 1; i >= 0; i --) {
+        int nSum = number[i] - '0' + nTakeOver;
+        if (i == nLength - 1)
+            nSum ++;
+        
+        if (nSum >= 10)
+        {
+            if (i == 0)
+                isOverflow = true;
+            else
+            {
+                nSum -= 10;
+                nTakeOver = 1;
+                number[i] = '0' + nSum;
+            }
+        }else {
+            number[i] = '0' + nSum;
+            break;
+        }
+    }
+    return isOverflow;
+}
+
+void Print1ToMaxOfDigits_1B(int n)
+{
+    if (n <= 0) return;
+    char* number =  new char[n + 1];
+    // memset 把字符串数字的前n个字符设置为为‘0’。
+    memset(number, '0', n);
+    number[n] = '\0';
+    
+    while (!Increment_1B(number)) {
+        PrintNumber_1B(number);
+    }
+    
+    delete []number;
+}
+
+// c.转换成数字排列的问题，使用递归
+void Print1ToMaxOfDigitsRecursively_1(char* number, int length, int index)
+{
+    if (index == length - 1)
+    {
+        PrintNumber_1B(number);
+        return;
+    }
+    for (int i = 0; i < 10; ++ i) {
+        number[index + 1] = i + '0';
+        Print1ToMaxOfDigitsRecursively_1(number, length, index + 1);
+    }
+}
+
+void Print1ToMaxOfDigits_1C(int n)
+{
+    if (n <= 0) return;
+    
+    char* number = new char[n + 1];
+    number[n] = '\0';
+    
+    for (int i = 0; i < 10; ++ i) {
+        number[0] = i + '0';
+        Print1ToMaxOfDigitsRecursively_1(number, n, 0);
+    }
+    delete []number;
+    
+}
+
+#pragma mark -- 8.在O(1)的时间删除结点
+struct ListNode {
+    int         m_value;
+    ListNode*   m_pNext;
+};
+
+// 时间复杂度是[(n-1)*O(1) + O(n)]/n = O(1)
+void DeleteNode_A(ListNode** pListHead, ListNode* pToBeDeleted)
+{
+    if (!pListHead || !pToBeDeleted) return;
+    
+    // 要删除的结点不是尾结点（把要删除的结点i的下一个结点j的值复制到i上，然后把i指向j的下一个结点，再删除j，即相当于删除i）。
+    if (pToBeDeleted->m_pNext != NULL) {
+        ListNode* pNext = pToBeDeleted->m_pNext;
+        pToBeDeleted->m_value = pNext->m_value;
+        pToBeDeleted->m_pNext = pNext->m_pNext;
+        
+        delete pNext;
+        pNext = NULL;
+    }
+    // 链表只有一个结点，删除头结点（也是尾结点）
+    else if (*pListHead == pToBeDeleted)
+    {
+        delete pToBeDeleted;
+        pToBeDeleted = NULL;
+        *pListHead = NULL;
+    }
+    // 链表中有多个结点，删除尾结点
+    else{
+        ListNode* pNode = *pListHead;
+        while (pNode->m_pNext != pToBeDeleted) {
+            pNode = pNode->m_pNext;
+        }
+        pNode->m_pNext = NULL;
+        delete pToBeDeleted;
+        pToBeDeleted = NULL;
+    }
+}
+
+#pragma mark -- 9.调整数组顺序使奇数位于偶数前面
+
+/**
+ 维护两个指针，第一个指针初始化时指向数组的第一个数字，它只向后移动。第二个指针初始化时指向数组的最后一个数字，它只向前移动。在两个指针相遇之前，第一个指针总是位于第二个指针之前。如果第一个指针指向的数字是偶数，而第二个指针指向的数字是奇数，则交换。
+ */
+void ReorderOddEven_A(int* pData, unsigned int length)
+{
+    if (pData == NULL || length == 0) return;
+    
+    int *pBegin = pData;
+    int *pEnd = pData + length - 1;
+    
+    while (pBegin < pEnd) {
+        // 向后移动pBegin，直到它指向偶数
+        while (pBegin < pEnd && (*pBegin & 0x1) != 0)
+            pBegin ++;
+        // 向前移动pEnd，直到它指向奇数
+        while (pBegin < pEnd && (*pEnd & 0x1) == 0)
+            pEnd --;
+        if (pBegin < pEnd) {
+            int temp = *pBegin;
+            *pBegin = *pEnd;
+            *pEnd = temp;
+        }
+    }
+}
+
+bool isEven(int n)
+{
+    return (n & 1) == 0;
+}
+
+void Reorder_B(int* pData, unsigned int length, bool (*func)(int))
+{
+    if (pData == NULL || length <= 0) return;
+    
+    int *pBegin = pData;
+    int *pEnd = pData + length - 1;
+    
+    while (pBegin < pEnd) {
+        while (pBegin < pEnd && !func(*pBegin))
+            pBegin ++;
+        while (pBegin < pEnd && func(*pEnd))
+            pEnd --;
+        if (pBegin < pEnd) {
+            int temp = *pBegin;
+            *pBegin = *pEnd;
+            *pEnd = temp;
+        }
+    }
+}
+
+void ReorderOddEven_B(int* pData, unsigned int length)
+{
+    Reorder_B(pData, length, isEven);
+}
+
+#pragma mark -- 10.求链表的倒数第k个结点
+
+struct ListNode10 {
+    int          m_value;
+    ListNode10*  m_pNext;
+};
+
 
 int main(int arg, const char * argv[])
 {
-    // 1.
-    int a[] = {1, 2, 3, 8, 9, 4, 7, 10, 5, 6};
-//    QuickSort1(a, 10, 1, 7);
-    // 2.
-    SortAges1(a, 10);
+//    // 1.
+//    int a[] = {1, 2, 3, 8, 9, 4, 7, 10, 5, 6};
+////    QuickSort1(a, 10, 1, 7);
+//    // 2.
+//    SortAges1(a, 10);
+//    for (int i = 0; i < sizeof(a)/sizeof(*a); ++ i) {
+//        cout << a[i] << endl;
+//    }
+//    // 3.
+//    int c[] = {1, 2, 0, 1, 1};
+//    cout << Min1(c, 5) <<endl;
+//    // 4.
+//    cout << Fibonacci1(10) << endl;
+//    return 0;
+    // 5.
+//    cout << NumberOfOne(10) << endl;
+    // 6.
+//    cout << PowerWithUnsignedExponent1(10, 4) << endl;
+    // 7.
+//    Print1ToMaxOfDigits_1A(2);
+//    Print1ToMaxOfDigits_1B(2);
+//    Print1ToMaxOfDigits_1C(2);
+    // 9.
+    int a[] = {1, 2, 3, 4, 5,  6, 7, 8};
+    ReorderOddEven_A(a, 8);
     for (int i = 0; i < sizeof(a)/sizeof(*a); ++ i) {
         cout << a[i] << endl;
     }
-    // 3.
-    int c[] = {1, 2, 0, 1, 1};
-    cout << Min1(c, 5) <<endl;
-    // 4.
-    cout << Fibonacci1(10) << endl;
-    return 0;
 }
 
 
