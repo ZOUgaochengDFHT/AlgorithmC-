@@ -56,7 +56,6 @@ int Partition1(int data[], int length, int start, int end)
     
     ++ small;
     Swap1(&data[small], &data[end]);
-    printf("%d\n", small);
     return small;
 }
 
@@ -463,22 +462,474 @@ struct ListNode10 {
 };
 
 
+#pragma mark -- 26.复杂链表的复制
+
+struct ComplexListNode {
+    int               m_nValue;
+    ComplexListNode*  m_pNext;
+    ComplexListNode*  m_pSibling; // 指向链表中的任意结点或者NULL
+};
+
+
+/**
+ 第一步根据原始链表的结点N创建对应的N‘
+
+ @param pHead 头结点
+ */
+void CloneNodes(ComplexListNode* pHead)
+{
+    ComplexListNode* pNode = pHead;
+    while (pNode != NULL) {
+        ComplexListNode *pCloned = new ComplexListNode();
+        pCloned->m_nValue = pNode->m_nValue;
+        pCloned->m_pNext = pNode->m_pNext;
+        pCloned->m_pSibling = NULL;
+        
+        pNode->m_pNext = pCloned;
+        pNode = pCloned->m_pNext;
+    }
+}
+
+
+/**
+ 第二步设置复制出来的m_pSibling结点
+
+ @param pHead 头结点
+ */
+void ConnectSiblingNodes(ComplexListNode* pHead)
+{
+    ComplexListNode* pNode = pHead;
+    while (pNode != NULL) {
+        ComplexListNode* pCloned = pNode->m_pNext;
+        if (pNode->m_pSibling != NULL) pCloned->m_pSibling = pNode->m_pSibling->m_pNext;
+        pNode = pCloned->m_pNext;
+    }
+}
+
+
+/**
+ 第三步把这个长链表拆分成两个链表：把奇数位置的结点用m_pNext链接起来就是原始表，把偶数位置的结点用m_pNext链接起来就是复制链表。
+
+ @param pHead 头结点
+ @return 复制结点
+ */
+ComplexListNode* ReconnectNodes(ComplexListNode* pHead)
+{
+    ComplexListNode* pNode = pHead;
+    ComplexListNode* pClonedHead = NULL;
+    ComplexListNode* pClonedNode = NULL;
+    
+    if (pNode != NULL) {
+        pClonedHead = pClonedNode = pNode->m_pNext;
+        pNode->m_pNext = pClonedNode->m_pNext;
+        pNode = pNode->m_pNext;
+    }
+    
+    while (pNode != NULL) {
+        pClonedNode->m_pNext = pNode->m_pNext;
+        pClonedNode = pClonedNode->m_pNext;
+        pNode->m_pNext = pClonedNode->m_pNext;
+        pNode = pNode->m_pNext;
+    }
+    return pClonedNode;
+}
+
+ComplexListNode* Clone(ComplexListNode* pHead)
+{
+    CloneNodes(pHead);
+    ConnectSiblingNodes(pHead);
+    return ReconnectNodes(pHead);
+}
+
+#pragma mark -- 27.二叉搜索树转双向链表
+
+struct BinaryTreeNode {
+    int              m_nValue;
+    BinaryTreeNode*  m_pLeft;
+    BinaryTreeNode*  m_pRight;
+};
+
+
+/**
+ 递归
+ */
+void ConvertNode(BinaryTreeNode* pNode, BinaryTreeNode** pLastNodeInList)
+{
+    if (pNode == NULL) return;
+    BinaryTreeNode* pCurrent = pNode;
+    if (pCurrent->m_pLeft != NULL) ConvertNode(pCurrent->m_pLeft, pLastNodeInList);
+    pCurrent->m_pLeft = *pLastNodeInList;
+    if (pCurrent->m_pRight != NULL) ConvertNode(pCurrent->m_pRight, pLastNodeInList);
+}
+
+BinaryTreeNode* Convert(BinaryTreeNode* pRootOfTree)
+{
+    BinaryTreeNode* pLastNodeInList = NULL;
+    ConvertNode(pRootOfTree, &pLastNodeInList);
+    
+    // pLastNodeInList指向双向链表的尾结点，我们需要返回头结点
+    BinaryTreeNode* pHeadOfList = pLastNodeInList;
+    while (pHeadOfList != NULL && pHeadOfList->m_pLeft != NULL) pHeadOfList = pHeadOfList->m_pLeft;
+    return pHeadOfList;
+}
+
+#pragma mark -- 28.字符串的排列  
+//http://blog.csdn.net/hackbuteer1/article/details/7462447
+
+#include <assert.h>
+/**
+ 在每一次递归的时候，从pBegin向后扫描每一个字符（即指针pCh指向的字符）。在交换pBegin和pCh指向的字符后，再对pBegin后面的字符串递归地做排列操作，直至PBegin指向字符串的末尾。
+
+ @param pStr 指针pStr指向整个字符串的第一个字符
+ @param pBegin 指针pBegin指向当前做操作的字符串的第一个字符
+ */
+void Permutation(char* pStr, char* pBegin)
+{
+    if (pStr == NULL) return;
+    if (*pBegin == '\0') {
+        printf("%s\n", pStr);
+    }else {
+        for (char* pCh = pBegin; *pCh != '\0'; ++ pCh) {
+            char temp = *pCh;
+            *pCh = *pBegin;
+            *pBegin = temp;
+            
+            Permutation(pStr, pBegin + 1);
+            
+            temp = *pCh;
+            *pCh = *pBegin;
+            *pBegin = temp;
+        }
+    }
+}
+
+
+/**
+ @param pStr 指针pStr指向整个字符串的第一个字符
+ @param k k表示当前选取到第几个数
+ @param m m表示共有多少个数
+ */
+void Permutation_A(char* pStr, int k, int m)
+{
+    assert(pStr != NULL);
+    if (k == m) {
+        static int num = 1; //局部静态变量，用来统计全排列的个数
+        printf("第%d个排列\t%s\n", num ++, pStr);
+    } else {
+        for (int i = k; i <= m; i ++) {
+            char temp = *(pStr + k);
+            *(pStr + k) = *(pStr + i);
+            *(pStr + i) = temp;
+            
+            Permutation_A(pStr, k + 1, m);
+            
+            temp = *(pStr + k);
+            *(pStr + k) = *(pStr + i);
+            *(pStr + i) = temp;
+        }
+    }
+}
+
+#pragma mark -- 字符串的组合
+
+#include <vector>
+#include <assert.h>
+
+void Combination(char* string, int number, vector<char>& result);
+
+void Combination(char* string)
+{
+    assert(string != NULL);
+    vector<char> result;
+    
+    for (int i = 1; i <= strlen(string); ++ i) Combination(string, i, result);
+}
+
+void Combination(char* string, int number, vector<char>& result)
+{
+    assert(string != NULL);
+    if (number == 0) {
+        static int num = 1;
+        printf("第%d个组合\t", num++);
+        
+        vector<char>::iterator iter = result.begin();
+        for (; iter != result.end(); ++ iter) printf("%c", *iter);
+        printf("\n");
+        return;
+    }
+    if (*string == '\0') return;
+    
+    result.push_back(*string);
+    Combination(string + 1, number - 1, result);
+    result.pop_back();
+    Combination(string + 1, number, result);
+}
+
+#pragma mark -- 用位运算来实现求字符串的组合
+
+#include <iostream>
+using namespace std;
+
+int a[] = {1,3,5,4,6};
+char str[] = "abc";
+
+void print_subset(int n , int s)
+{
+    printf("{");
+    for(int i = 0 ; i < n ; ++ i)
+    {
+        if(s & (1 << i))         // 判断s的二进制中哪些位为1，即代表取某一位
+            printf("%c", str[i]);   //或者a[i]
+    }
+    printf("}\n");
+}
+
+void subset(int n)
+{
+    for(int i = 0 ; i < (1<<n) ; ++ i)
+    {
+        print_subset(n, i);
+    }
+}
+
+#pragma mark -- 字符串全排列拓展----八皇后问题
+
+/**
+ 由于八个皇后的任意两个不能处在同一行，那么这肯定是每一个皇后占据一行。于是我们可以定义一个数组columnIndex[8]，数组中第i个数字表示位于第i行的皇后的列号。先把columnIndex的八个数字分别用0-7初始化，接下来我们要做的事情就是对数组columnIndex做全排列。由于我们是用不同的数字初始化数组中的数字，因此任意两个皇后肯定不同列。我们只需要判断得到的每一个排列对应的八个皇后是不是在同一对角斜线上，也就是数组的两个下标i和j，是不是i-j==columnIndex[i]-Column[j]或者j-i==columnIndex[i]-columnIndex[j]。
+ */
+
+#include<iostream>
+using namespace std;
+
+int g_number = 0;
+void Permutation(int * , int  , int );
+void Print(int * , int );
+
+void EightQueen( )
+{
+    const int queens = 8;
+    int columnIndex[queens];
+    for(int i = 0; i < queens; ++ i)
+        columnIndex[i] = i;    //初始化
+    Permutation(columnIndex , queens , 0);
+}
+
+bool Check(int columnIndex[] , int length)
+{
+    int i,j;
+    for(i = 0 ; i < length; ++i)
+    {
+        for(j = i + 1 ; j < length; ++j)
+        {
+            if( i - j == columnIndex[i] - columnIndex[j] || j - i == columnIndex[i] - columnIndex[j])   //在正、副对角线上
+                return false;
+        }
+    }
+    return true;
+}
+void Permutation(int columnIndex[] , int length , int index)
+{
+    if(index == length)
+    {
+        if( Check(columnIndex , length) )   //检测棋盘当前的状态是否合法
+        {
+            ++ g_number;
+            Print(columnIndex , length);
+        }
+    }
+    else
+    {
+        for(int i = index ; i < length; ++i)   //全排列
+        {
+            swap(columnIndex[index] , columnIndex[i]);
+            Permutation(columnIndex , length , index + 1);
+            swap(columnIndex[index] , columnIndex[i]);
+        }
+    }
+}
+
+void Print(int columnIndex[] , int length)
+{
+    printf("%d\n",g_number);
+    for(int i = 0; i < length; ++ i)
+        printf("%d ",columnIndex[i]);
+    printf("\n");
+}
+
+#pragma mark -- 输入两个整数n和m，从数列1,2,3...n中随意取几个数，使其和等于m，要求列出所有的组合。
+
+#include <iostream>
+#include <list>
+using namespace std;
+
+
+list<int> list1;
+
+void find_factor(int sum,int n)
+{
+    //递归出口
+    if(n <= 0 || sum <= 0)
+        return;
+    //输出找到的数
+    if(sum == n)
+    {
+        list1.reverse();
+        for(list<int>::iterator iter = list1.begin(); iter != list1.end(); iter++)
+            cout<< *iter <<"+";
+        cout << n << endl;
+        list1.reverse();
+    }
+    list1.push_front(n);
+    find_factor(sum-n,n-1);//n放在里面
+    list1.pop_front();
+    find_factor(sum,n-1);//n不放在里面
+}
+
+
+#pragma mark -- 29.数组中出现次数超过一半的数字
+
+bool g_bInputInvalid = false;
+
+bool CheckInvalidArray(int*, int);
+bool CheckMoreThanHalf(int*, int, int);
+
+// 1.基于Partition函数时间效率为O(n)的算法
+int MoreThanHalfNum(int* numbers, int length)
+{
+    if (CheckInvalidArray(numbers, length)) return 0;
+    
+    int middle = length >> 1;
+    int start = 0;
+    int end = length - 1;
+    int index = Partition1(numbers, length, start, end);
+    while (index != middle) {
+        if (index > middle) {
+            end = index - 1;
+        }else {
+            start = index + 1;
+        }
+        index = Partition1(numbers, length, start, end);
+    }
+    
+    int result = numbers[middle];
+    if (!CheckMoreThanHalf(numbers, length, result)) result = 0;
+    return result;
+}
+
+// 2.根据数组特点找出时间效率为O(n)的算法
+int MoreThanHalfNum_A(int* numbers, int length)
+{
+    if (CheckInvalidArray(numbers, length)) return 0;
+    
+    int result = numbers[0];
+    int times = 1;
+    for (int i = 0; i < length; ++ i) {
+        if (times == 0) {
+            result = numbers[i];
+            times = 1;
+        }else if (numbers[i] == result)
+            times ++;
+        else
+            times --;
+    }
+    if (!CheckMoreThanHalf(numbers, length, result)) result = 0;
+    return result;
+}
+
+// 判断输入是否有效
+bool CheckInvalidArray(int* numbers, int length)
+{
+    g_InvalidInput = false;
+    if (numbers == NULL || length <= 0) g_bInputInvalid = true;
+    return g_bInputInvalid;
+}
+
+// 判断输入的数组是否满足要求
+bool CheckMoreThanHalf(int* numbers, int length, int number)
+{
+    int times = 0;
+    for (int i = 0; i < length; ++ i) {
+        if (numbers[i] == number) times++;
+    }
+    
+    bool isMoreThanHalf = true;
+    if (times * 2 <= length)
+    {
+        g_bInputInvalid = true;
+        isMoreThanHalf = false;
+    }
+    return isMoreThanHalf;
+}
+
+#pragma mark -- 30.最小的k个数
+
+// 1.基于Partition函数的时间效率为O(n)的算法，只有当可以修改输入的数组时可用
+
+void GetLeastNumbers(int* input, int n, int k)
+{
+    if (input == NULL || k > n || n <= 0 || k <= 0) return;
+    
+    int start = 0;
+    int end = n - 1;
+    int index = Partition1(input, n, start, end);
+    while (index != k - 1) {
+        if (index > k - 1)
+            end = index - 1;
+        else
+            start = index + 1;
+        index = Partition1(input, n, start, end);
+    }
+    for (int i = 0; i < k; ++ i) {
+        cout << input[i] << endl;
+    }
+}
+
+// 2.基于堆和红黑树的适合海量数据的时间效率为O(nlogk)的算法。红黑树的删除、查找和插入操作都只需要O(logk)时间。
+#include <set>
+
+typedef multiset<int, greater<int>>            intset;
+typedef multiset<int, greater<int>> ::iterator setIterator;
+
+void GetLeastNumbers_A(const vector<int>& data, intset& leastNumbers, int k)
+{
+    leastNumbers.clear();
+    if (data.size() < k || k < 1) return;
+    
+    vector<int>::const_iterator iter = data.begin();
+    for (; iter != data.end(); ++ iter) {
+        if (leastNumbers.size() < k)
+            leastNumbers.insert(*iter);
+        else
+        {
+            setIterator iterGreatest = leastNumbers.begin();
+            if (*iter < *leastNumbers.begin())
+            {
+                leastNumbers.erase(iterGreatest);
+                leastNumbers.insert(*iter);
+            }
+        }
+    }
+}
+
+#pragma mark -- 31.连续子数组的最大和
+
+
+
 int main(int arg, const char * argv[])
 {
-//    // 1.
+    // 1.
 //    int a[] = {1, 2, 3, 8, 9, 4, 7, 10, 5, 6};
 ////    QuickSort1(a, 10, 1, 7);
-//    // 2.
+    // 2.
 //    SortAges1(a, 10);
 //    for (int i = 0; i < sizeof(a)/sizeof(*a); ++ i) {
 //        cout << a[i] << endl;
 //    }
-//    // 3.
+    // 3.
 //    int c[] = {1, 2, 0, 1, 1};
 //    cout << Min1(c, 5) <<endl;
-//    // 4.
+    // 4.
 //    cout << Fibonacci1(10) << endl;
-//    return 0;
     // 5.
 //    cout << NumberOfOne(10) << endl;
     // 6.
@@ -488,11 +939,28 @@ int main(int arg, const char * argv[])
 //    Print1ToMaxOfDigits_1B(2);
 //    Print1ToMaxOfDigits_1C(2);
     // 9.
-    int a[] = {1, 2, 3, 4, 5,  6, 7, 8};
-    ReorderOddEven_A(a, 8);
-    for (int i = 0; i < sizeof(a)/sizeof(*a); ++ i) {
-        cout << a[i] << endl;
-    }
+//    int a[] = {1, 2, 3, 4, 5,  6, 7, 8};
+//    ReorderOddEven_A(a, 8);
+//    for (int i = 0; i < sizeof(a)/sizeof(*a); ++ i) {
+//        cout << a[i] << endl;
+//    }
+    // 28.
+//    char a[] = "abc";
+//    Combination(a);
+//    subset(5);
+//    EightQueen();
+//    int sum,n;
+//    cin>>sum>>n;
+//    cout<<"所有可能的序列，如下："<<endl;
+//    find_factor(sum,n);
+    // 29.
+//    int number[] = {1,2,3,2,2,2,5,4,2};
+//    cout << MoreThanHalfNum(number, 9) << endl;
+//    cout << MoreThanHalfNum_A(number, 9) << endl;
+    // 30.
+    int number[] = {1,2,3,2,2,2,5,4,2};
+    GetLeastNumbers(number, 9, 5);
+    return 0;
 }
 
 
